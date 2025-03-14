@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Idea Incubator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 { text-align: center; color: #333; }
+        .form-container, .dashboard { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+            margin-bottom: 20px;
+        }
+        textarea, button { 
+            width: 100%; 
+            margin: 10px 0; 
+            padding: 10px; 
+            box-sizing: border-box; 
+        }
+        button { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+        }
+        button:hover { background: #0056b3; }
+        .result, .tweak, .dashboard-item { 
+            margin-top: 10px; 
+            padding: 10px; 
+            background: #e9ecef; 
+            border-radius: 4px; 
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <h1>AI Idea Incubator</h1>
+    
+    <!-- Idea Input Form -->
+    <div class="form-container">
+        <h2>Submit Your Idea</h2>
+        <textarea id="ideaInput" rows="4" placeholder="Describe your idea, who it’s for, how it makes money (100 words max)" maxlength="100"></textarea>
+        <button onclick="rankIdea()">Rank Idea</button>
+        <div id="result" class="result hidden"></div>
+        <button id="tweakBtn" class="hidden" onclick="tweakIdea()">Get Tweak</button>
+        <div id="tweak" class="tweak hidden"></div>
+        <button id="shareBtn" class="hidden" onclick="shareIdea()">Send to Network</button>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard">
+        <h2>Your Ideas</h2>
+        <div id="dashboardItems"></div>
+    </div>
+
+    <script>
+        let ideas = [];
+
+        function rankIdea() {
+            const input = document.getElementById('ideaInput').value.trim();
+            if (!input) {
+                alert('Please enter an idea!');
+                return;
+            }
+
+            // Fake AI ranking (simple keyword-based simulation)
+            const words = input.toLowerCase().split(' ');
+            const marketScore = words.includes('all') || words.includes('everyone') ? 8 : 6;
+            const feasScore = words.includes('ai') || words.includes('app') ? 7 : 6;
+            const profitScore = words.includes('subscription') || words.includes('money') ? 8 : 6;
+            const totalScore = Math.round((marketScore + feasScore + profitScore) / 3);
+
+            const result = `Score: ${totalScore} (Market: ${marketScore}, Feasibility: ${feasScore}, Profit: ${profitScore})`;
+            document.getElementById('result').innerText = result;
+            document.getElementById('result').classList.remove('hidden');
+            document.getElementById('tweakBtn').classList.remove('hidden');
+            document.getElementById('shareBtn').classList.add('hidden');
+            document.getElementById('tweak').classList.add('hidden');
+
+            // Store idea
+            ideas.push({ idea: input, score: totalScore, tweak: '' });
+            updateDashboard();
+        }
+
+        function tweakIdea() {
+            const lastIdea = ideas[ideas.length - 1];
+            const scoreParts = document.getElementById('result').innerText.match(/Market: (\d+), Feasibility: (\d+), Profit: (\d+)/);
+            const [_, market, feas, profit] = scoreParts.map(Number);
+
+            // Fake AI tweak based on lowest score
+            let tweak = '';
+            if (market < 7) tweak = 'Broaden your target audience to reach more users.';
+            else if (feas < 7) tweak = 'Simplify by using existing tools or APIs.';
+            else if (profit < 7) tweak = 'Add a subscription model for steady revenue.';
+            else tweak = 'Looks solid—refine your pitch!';
+
+            lastIdea.tweak = tweak;
+            document.getElementById('tweak').innerText = `Tweak: ${tweak}`;
+            document.getElementById('tweak').classList.remove('hidden');
+            document.getElementById('shareBtn').classList.remove('hidden');
+            updateDashboard();
+        }
+
+        function shareIdea() {
+            const lastIdea = ideas[ideas.length - 1];
+            // Mock marketplace (alert instead of email)
+            alert(`Idea sent to network: "${lastIdea.idea}"\nTweak: "${lastIdea.tweak}"\nCheck your inbox for replies!`);
+        }
+
+        function updateDashboard() {
+            const dashboard = document.getElementById('dashboardItems');
+            dashboard.innerHTML = '';
+            ideas.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'dashboard-item';
+                div.innerText = `Idea #${index + 1}: "${item.idea}"\nScore: ${item.score}\nTweak: ${item.tweak || 'None yet'}`;
+                dashboard.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>
