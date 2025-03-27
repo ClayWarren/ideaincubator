@@ -76,7 +76,7 @@
                 rankBtn.disabled = length === 0;
             }
 
-            function rankIdea() {
+            async function rankIdea() {
                 console.log('Rank Idea clicked');
                 const input = ideaInput.value.trim();
                 if (!input) {
@@ -85,27 +85,36 @@
                     return;
                 }
 
-                // Smarter AI ranking
-                const words = input.toLowerCase().split(' ');
-                const marketScore = Math.min(10, (words.includes('global') || words.includes('everyone') || words.includes('millions') ? 8 : 5) + Math.floor(Math.random() * 3));
-                const feasScore = Math.min(10, (words.includes('ai') || words.includes('existing') || words.includes('simple') ? 7 : 4) + Math.floor(Math.random() * 3));
-                const profitScore = Math.min(10, (words.includes('subscription') || words.includes('revenue') || words.includes('ads') ? 8 : 5) + Math.floor(Math.random() * 3));
-                const totalScore = Math.round((marketScore * 0.4 + feasScore * 0.3 + profitScore * 0.3) * 10) / 10; // Weighted scoring
+                try {
+                    rankBtn.disabled = true;
+                    const response = await fetch('/api/rank', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idea: input, action: 'rank' })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || 'Ranking failed');
 
-                console.log('Scores:', { marketScore, feasScore, profitScore, totalScore });
-                resultDiv.innerText = `Score: ${totalScore} (Market: ${marketScore}, Feasibility: ${feasScore}, Profit: ${profitScore})`;
-                resultDiv.classList.remove('hidden');
-                tweakBtn.classList.remove('hidden');
-                tweakDiv.classList.add('hidden');
-                shareBtn.classList.add('hidden');
+                    const { marketScore, feasScore, profitScore, totalScore } = data;
+                    resultDiv.innerText = `Score: ${totalScore} (Market: ${marketScore}, Feasibility: ${feasScore}, Profit: ${profitScore})`;
+                    resultDiv.classList.remove('hidden');
+                    tweakBtn.classList.remove('hidden');
+                    tweakDiv.classList.add('hidden');
+                    shareBtn.classList.add('hidden');
 
-                ideas.push({ input, market: marketScore, feas: feasScore, profit: profitScore, tweak: '' });
-                localStorage.setItem('ideas', JSON.stringify(ideas));
-                updateDashboard();
-                console.log('Ranked:', ideas[ideas.length - 1]);
+                    ideas.push({ input, market: marketScore, feas: feasScore, profit: profitScore, tweak: '' });
+                    localStorage.setItem('ideas', JSON.stringify(ideas));
+                    updateDashboard();
+                    console.log('Ranked:', ideas[ideas.length - 1]);
+                } catch (error) {
+                    errorMsg.innerText = `Error: ${error.message}`;
+                    errorMsg.classList.remove('hidden');
+                } finally {
+                    rankBtn.disabled = false;
+                }
             }
 
-            function tweakIdea() {
+            async function tweakIdea() {
                 console.log('Tweak button clicked');
                 const lastIdea = ideas[ideas.length - 1];
                 if (!lastIdea) {
@@ -114,24 +123,29 @@
                     return;
                 }
 
-                const { market, feas, profit } = lastIdea;
-                const lowest = Math.min(market, feas, profit);
-                let tweak = '';
-                if (lowest === market) {
-                    tweak = market < 7 ? 'Expand to a broader, global audience to boost reach.' : 'Target a specific, high-demand niche for better focus.';
-                } else if (lowest === feas) {
-                    tweak = feas < 7 ? 'Simplify with existing tools or AI to reduce complexity.' : 'Streamline execution for faster rollout.';
-                } else {
-                    tweak = profit < 7 ? 'Incorporate a subscription or scalable revenue model.' : 'Optimize pricing or add upsells for higher margins.';
-                }
+                try {
+                    tweakBtn.disabled = true;
+                    const response = await fetch('/api/rank', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idea: lastIdea.input, action: 'tweak', scores: { market: lastIdea.market, feas: lastIdea.feas, profit: lastIdea.profit } })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || 'Tweaking failed');
 
-                lastIdea.tweak = tweak;
-                tweakDiv.innerText = `Tweak: ${tweak}`;
-                tweakDiv.classList.remove('hidden');
-                shareBtn.classList.remove('hidden');
-                localStorage.setItem('ideas', JSON.stringify(ideas));
-                updateDashboard();
-                console.log('Tweak set:', tweak);
+                    lastIdea.tweak = data.tweak;
+                    tweakDiv.innerText = `Tweak: ${lastIdea.tweak}`;
+                    tweakDiv.classList.remove('hidden');
+                    shareBtn.classList.remove('hidden');
+                    localStorage.setItem('ideas', JSON.stringify(ideas));
+                    updateDashboard();
+                    console.log('Tweak set:', lastIdea.tweak);
+                } catch (error) {
+                    errorMsg.innerText = `Error: ${error.message}`;
+                    errorMsg.classList.remove('hidden');
+                } finally {
+                    tweakBtn.disabled = false;
+                }
             }
 
             function shareIdea() {
@@ -150,7 +164,7 @@
                     div.innerHTML = `
                         <div>
                             <strong>Idea #${index + 1}:</strong> "${item.input}"<br>
-                            <strong>Score:</strong> ${item.score || Math.round((item.market * 0.4 + item.feas * 0.3 + item.profit * 0.3) * 10) / 10}<br>
+                            <strong>Score:</strong> ${item.score || Math.round((item.market + item.feas + item.profit) / 3)}<br>
                             <strong>Tweak:</strong> ${item.tweak || 'None yet'}
                         </div>
                         <button class="text-red-500 hover:text-red-700 text-sm" onclick="deleteIdea(${index})">Delete</button>
